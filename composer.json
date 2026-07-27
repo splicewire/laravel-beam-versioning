@@ -26,8 +26,8 @@
         "wikimedia/composer-merge-plugin": "^2.1"
     },
     "suggest": {
-        "schemastud/laravel-data-schemas": "Adds #[Description]/#[Example] annotations to the VersionData projection for schema/API-doc generation (engine-tier host).",
-        "rushing/laravel-data-schemas-scribe": "Adds #[RequestFromData]/#[ResponseFromData] on the controller so the versions endpoints self-document under Scribe (engine-tier host)."
+        "schemastud/laravel-data-schemas": "The VersionData / VersionInputData projections carry #[Description]/#[Example] annotations for schema + API-doc generation. Only reflected by a schema/Scribe host (never at request time — spatie/laravel-data never instantiates foreign attributes), so the package runs without it; an engine-tier host (which has it) documents the endpoints with field descriptions.",
+        "rushing/laravel-data-schemas-scribe": "The VersionsController methods carry #[RequestFromData]/#[ResponseFromData] so the versions triplet self-documents under Scribe. Only reflected by `scribe:generate` (never at request time), so the package runs without it; a Scribe host generates the endpoint docs."
     },
     "autoload": {
         "psr-4": {
