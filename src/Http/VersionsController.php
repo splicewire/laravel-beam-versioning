@@ -40,7 +40,7 @@ class VersionsController extends Controller
 {
     use AuthorizesRequests;
 
-    public function __construct(private readonly VersionStore $store) {}
+    public function __construct(private VersionStore $store) {}
 
     /**
      * List Versions
