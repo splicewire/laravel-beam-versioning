@@ -14,7 +14,7 @@ use Spatie\LaravelData\Data;
  *
  * This is the shared shape every versions surface projects (compositions, embeds, …). An engine-tier
  * host may re-declare a thin subclass carrying `#[TypeScript]` to route it through the app's
- * `_resources` / Frame projection pipeline (see the consuming app's `App\Data\VersionData`); the
+ * `_resources` / Frame projection pipeline (see the consuming app's `Splicewire\Tower\Data\VersionData`); the
  * mechanics + the schema annotations live here.
  */
 #[Description('One immutable version of a record: a frozen input-state snapshot with a monotonic number and a human-readable handle.')]
