@@ -1,24 +1,24 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 use Splicewire\Beam\Versioning\Data\VersionData;
 use Splicewire\Beam\Versioning\Http\VersionsController;
 use Splicewire\Beam\Versioning\Tests\Fixtures\Note;
 
 /**
- * The `data:` seam on `Route::recordVersions()` — how a host declares the DTO its generated CLIENT
- * types against, which this package cannot answer for itself.
+ * The `data:` override on `Route::recordVersions()`, and the reason it is only an override.
  *
- * {@see VersionData} deliberately carries no `#[TypeScript]`: it is engine-tier, and its own docblock
- * prescribes that a host re-declare a thin annotated subclass to route the shape through the host's
- * projection pipeline. Client codegen resolves a return type from `#[ResponseFromData]` when nothing
- * more specific is declared, and that attribute can only ever name THIS package's class — so a host
- * without this seam generates hooks referencing a TypeScript namespace its transformer never emits.
- * That is not a cosmetic mismatch: it does not compile. It cost splicewire-app 13 tsc errors.
+ * {@see VersionData} emits its own TypeScript, so codegen's `#[ResponseFromData]` fallback resolves a
+ * real type for every host and the common case needs no declaration at all. That was not always true:
+ * the attribute ships with `spatie/typescript-transformer`, which this package did not depend on, so
+ * hosts were told to re-declare an annotated subclass — but these routes are minted from INSIDE the
+ * macro, leaving no call site to point at it. Codegen fell back to the un-emitted package class and
+ * generated hooks against a namespace that did not exist: 13 tsc errors in splicewire-app.
  *
- * `returns` is written straight onto the route's action rather than through the `->returns()` macro,
- * because that macro is defined HOST-side — a package that called it would break any host lacking it.
- * These tests pin both the wiring and that omitting `data:` stays inert.
+ * `data:` survives that fix for the host that genuinely projects a different shape. `returns` is
+ * written straight onto the route's action rather than through the `->returns()` macro, because that
+ * macro is defined HOST-side — a package calling it would break any host lacking it.
  */
 it('writes the host DTO onto each route of the triplet', function () {
     Route::recordVersions('typed-notes', Note::class, data: HostVersionData::class);
@@ -55,16 +55,17 @@ it('declares nothing when the host omits the seam', function () {
         ->and(Route::getRoutes()->getByName('untyped-notes.versions.index')->getAction('returnsMany'))->toBeNull();
 });
 
-it('keeps the package DTO un-annotated, which is why the seam exists', function () {
-    // If someone "fixes" the tsc error by adding #[TypeScript] here instead, this fails — and it
-    // should: annotating an engine-tier DTO emits it under the PACKAGE namespace, not the host's
-    // App.Data.*, so the host's own subclass would then double-declare the same shape.
-    $attributes = (new ReflectionClass(VersionData::class))->getAttributes();
-    $names = array_map(fn ($a) => $a->getName(), $attributes);
+it('emits its own TypeScript so the common case needs no override', function () {
+    // The fact that makes `data:` optional. Removing this attribute reopens the bug: the
+    // #[ResponseFromData] fallback below would then name a class the host's transformer never emits.
+    $names = array_map(
+        fn ($a) => $a->getName(),
+        (new ReflectionClass(VersionData::class))->getAttributes(),
+    );
 
-    expect($names)->not->toContain(Spatie\TypeScriptTransformer\Attributes\TypeScript::class);
+    expect($names)->toContain(TypeScript::class);
 
-    // And the attribute the fallback reads still names the package class — the fact the seam overrides.
+    // The attribute the fallback reads names this same now-emitted class, which is why it resolves.
     $index = new ReflectionMethod(VersionsController::class, 'index');
     $responseFrom = $index->getAttributes(Rushing\LaravelDataSchemasScribe\Attributes\ResponseFromData::class);
 

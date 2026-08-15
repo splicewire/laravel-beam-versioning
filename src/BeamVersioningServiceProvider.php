@@ -34,16 +34,13 @@ class BeamVersioningServiceProvider extends ServiceProvider
      * the model that returns the Versionable to snapshot (e.g. `versionable` for a morph-aliased
      * record); omit it when the model is itself Versionable.
      *
-     * `data` names the response DTO the CLIENT should type against, and exists because this package
-     * cannot answer that question for itself. {@see VersionData} deliberately carries no
-     * `#[TypeScript]` — it is engine-tier, and its own docblock prescribes that a host re-declare a
-     * thin annotated subclass to route the shape through the host's projection pipeline. Codegen
-     * resolves a return type from `#[ResponseFromData]` when nothing more specific is declared, and
-     * that attribute can only name the package class — so without this seam a host generates a client
-     * referencing a TypeScript namespace its own transformer never emits, which does not compile.
+     * `data` overrides the response DTO the CLIENT types against. It is OPTIONAL and usually
+     * unnecessary: {@see VersionData} now carries its own `#[TypeScript]`, so codegen's
+     * `#[ResponseFromData]` fallback already resolves a real emitted type for every host.
      *
-     * Passing `data:` writes the host's annotated subclass onto each route's action as `returns`,
-     * which is the FIRST source in the codegen precedence and therefore beats the attribute. Written
+     * It exists for the host that genuinely projects something else — a subclass adding host-only
+     * fields, or a different shape entirely. Passing it writes that class onto each route's `returns`
+     * action, the FIRST source in the codegen precedence, so it beats the attribute fallback. Written
      * to the action array directly rather than through the `->returns()` macro: that macro is defined
      * host-side, so a package that called it would break any host without it.
      */
