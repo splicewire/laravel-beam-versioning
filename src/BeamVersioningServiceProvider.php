@@ -6,6 +6,7 @@ use Illuminate\Routing\Route as RouteInstance;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Str;
 use Splicewire\Beam\Versioning\Http\VersionsController;
 
 /**
@@ -62,10 +63,24 @@ class BeamVersioningServiceProvider extends ServiceProvider
             $abilities = array_merge(['view' => 'view', 'mutate' => 'update'], $abilities);
 
             $config = [
+                'resource' => $resource,
                 'model' => $modelClass,
                 'abilities' => $abilities,
                 'via' => $via,
             ];
+
+            // The OpenAPI `operationId` each of the three routes declares (api-surface-coherence 36/78).
+            // A macro puts ONE controller method on N routes, so a title-derived id collides across every
+            // resource that records versions; the mount is the only party that knows the resource, so it
+            // declares. Written straight into `action['beam']['operationId']` — the one key beam's
+            // `RouteMetadataReader::operationId()` reads and `->beam()->operationId()` writes — rather than
+            // through the proxy, because this package does not depend on beam and must stay mountable
+            // without it. `embeds` → `embedsVersionsIndex` / `embedsVersionsStore` / `embedsVersionsRestore`.
+            $declared = function (RouteInstance $route, string $operation) use ($resource): RouteInstance {
+                $route->action['beam']['operationId'] = Str::camel(str_replace('/', ' ', $resource)).'Versions'.ucfirst($operation);
+
+                return $route;
+            };
 
             $withId = function (RouteInstance $route) use ($idConstraint): RouteInstance {
                 return $idConstraint === 'uuid' ? $route->whereUuid('id') : $route;
@@ -84,15 +99,15 @@ class BeamVersioningServiceProvider extends ServiceProvider
                 return $route;
             };
 
-            $typed($withId($this->get("{$resource}/{id}/versions", [VersionsController::class, 'index'])), many: true)
+            $declared($typed($withId($this->get("{$resource}/{id}/versions", [VersionsController::class, 'index'])), many: true), 'index')
                 ->defaults('_versions', $config)
                 ->name("{$resource}.versions.index");
 
-            $typed($withId($this->post("{$resource}/{id}/versions", [VersionsController::class, 'store'])))
+            $declared($typed($withId($this->post("{$resource}/{id}/versions", [VersionsController::class, 'store']))), 'store')
                 ->defaults('_versions', $config)
                 ->name("{$resource}.versions.store");
 
-            $typed($withId($this->post("{$resource}/{id}/versions/{ref}/restore", [VersionsController::class, 'restore'])))
+            $declared($typed($withId($this->post("{$resource}/{id}/versions/{ref}/restore", [VersionsController::class, 'restore']))), 'restore')
                 ->defaults('_versions', $config)
                 ->name("{$resource}.versions.restore");
         });
