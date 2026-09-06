@@ -35,15 +35,10 @@ class BeamVersioningServiceProvider extends ServiceProvider
      * the model that returns the Versionable to snapshot (e.g. `versionable` for a morph-aliased
      * record); omit it when the model is itself Versionable.
      *
-     * `data` overrides the response DTO the CLIENT types against. It is OPTIONAL and usually
-     * unnecessary: {@see VersionData} now carries its own `#[TypeScript]`, so codegen's
-     * `#[ResponseFromData]` fallback already resolves a real emitted type for every host.
-     *
-     * It exists for the host that genuinely projects something else — a subclass adding host-only
-     * fields, or a different shape entirely. Passing it writes that class onto each route's `returns`
-     * action, the FIRST source in the codegen precedence, so it beats the attribute fallback. Written
-     * to the action array directly rather than through the `->returns()` macro: that macro is defined
-     * host-side, so a package that called it would break any host without it.
+     * `data` preserves legacy bare `returns` / `returnsMany` action values for existing callers.
+     * Beam's RouteActionMetadataReader reads namespaced `beam.*` keys, so these bare values do not
+     * override its response types. The controller's `#[ResponseFromData]` attributes declare the
+     * complete response bodies; list cardinality belongs to the envelope's `data` field.
      */
     private function bootRecordVersionsMacro(): void
     {
@@ -86,8 +81,7 @@ class BeamVersioningServiceProvider extends ServiceProvider
                 return $idConstraint === 'uuid' ? $route->whereUuid('id') : $route;
             };
 
-            // The host's client-facing DTO, when declared. `many` only on index — the triplet's two
-            // writes each answer with a single version.
+            // Preserve legacy bare action values. The full-body controller attributes remain canonical.
             $typed = function (RouteInstance $route, bool $many = false) use ($data): RouteInstance {
                 if ($data !== null) {
                     $route->action['returns'] = $data;

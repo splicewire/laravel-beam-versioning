@@ -15,6 +15,8 @@ use Rushing\Versioning\Contracts\VersionStore;
 use Rushing\Versioning\Models\Version;
 use Splicewire\Beam\Versioning\Data\VersionData;
 use Splicewire\Beam\Versioning\Data\VersionInputData;
+use Splicewire\Beam\Versioning\Data\VersionListResponseData;
+use Splicewire\Beam\Versioning\Data\VersionResponseData;
 
 /**
  * The one generic versions controller behind {@see Route::recordVersions()}
@@ -47,7 +49,7 @@ class VersionsController extends Controller
      *
      * A record's durable version history, newest-first, with the current HEAD flagged.
      */
-    #[ResponseFromData(VersionData::class)]
+    #[ResponseFromData(VersionListResponseData::class)]
     public function index(Request $request, string $id): JsonResponse
     {
         [$model, $versionable, $abilities] = $this->resolve($request, $id);
@@ -59,7 +61,7 @@ class VersionsController extends Controller
             ->map(fn (Version $version): VersionData => VersionData::fromVersion($version, $version->id === $headId))
             ->all();
 
-        return $this->ok($versions);
+        return new JsonResponse(new VersionListResponseData(success: true, data: $versions));
     }
 
     /**
@@ -69,7 +71,7 @@ class VersionsController extends Controller
      * Accepts an optional label.
      */
     #[RequestFromData(VersionInputData::class)]
-    #[ResponseFromData(VersionData::class)]
+    #[ResponseFromData(VersionResponseData::class, status: 201)]
     public function store(Request $request, string $id): JsonResponse
     {
         [$model, $versionable, $abilities] = $this->resolve($request, $id);
@@ -79,7 +81,7 @@ class VersionsController extends Controller
 
         $version = $this->store->snapshot($versionable, $input->label);
 
-        return $this->ok(VersionData::fromVersion($version, true), 201);
+        return new JsonResponse(new VersionResponseData(success: true, data: VersionData::fromVersion($version, true)), 201);
     }
 
     /**
@@ -90,7 +92,7 @@ class VersionsController extends Controller
      * fresh version — nothing is rewritten. Returns the minted version.
      */
     #[RequestFromData(VersionInputData::class)]
-    #[ResponseFromData(VersionData::class)]
+    #[ResponseFromData(VersionResponseData::class, status: 201)]
     public function restore(Request $request, string $id, string $ref): JsonResponse
     {
         [$model, $versionable, $abilities] = $this->resolve($request, $id);
@@ -111,7 +113,7 @@ class VersionsController extends Controller
             $input->label ?? "restore of {$version->readableVersion()}",
         );
 
-        return $this->ok(VersionData::fromVersion($new, true), 201);
+        return new JsonResponse(new VersionResponseData(success: true, data: VersionData::fromVersion($new, true)), 201);
     }
 
     /**
@@ -150,17 +152,7 @@ class VersionsController extends Controller
         return [$model, $versionable, $config['abilities']];
     }
 
-    /**
-     * The success envelope, mirroring the host app's `{success, data}` shape (consumers read `data`).
-     *
-     * @param  mixed  $data
-     */
-    private function ok($data, int $status = 200): JsonResponse
-    {
-        return new JsonResponse(['success' => true, 'data' => $data], $status);
-    }
-
-    /** The failure envelope, mirroring {@see ok()} so the two shapes stay in lockstep. */
+    /** The existing failure envelope; success bodies are declared by their response DTOs. */
     private function fail(string $message, int $status): JsonResponse
     {
         return new JsonResponse(['success' => false, 'message' => $message, 'data' => null], $status);
