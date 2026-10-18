@@ -19,6 +19,31 @@ class BeamVersioningServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->bootRecordVersionsMacro();
+        $this->registerBeamManifests();
+    }
+
+    /**
+     * Self-register into beam-core's install + doctor manifests (B2-2). This package publishes
+     * nothing and migrates nothing — its whole surface is the macro — so install enrollment is
+     * presence census, and the doctor audit asserts the macro actually registered. Bound-guarded:
+     * without beam-core the bindings simply don't exist and this is a no-op.
+     */
+    private function registerBeamManifests(): void
+    {
+        if ($this->app->bound('Splicewire\\Beam\\Install\\BeamInstallManifest')) {
+            $this->app->make('Splicewire\\Beam\\Install\\BeamInstallManifest')->register(
+                package: 'splicewire/laravel-beam-versioning',
+                publishTags: [],
+                migrates: false,
+            );
+        }
+
+        if ($this->app->bound('Splicewire\\Beam\\Doctor\\BeamDoctorManifest')) {
+            $this->app->make('Splicewire\\Beam\\Doctor\\BeamDoctorManifest')->register(
+                'splicewire/laravel-beam-versioning',
+                \Splicewire\Beam\Versioning\Doctor\RecordVersionsMacroAudit::class,
+            );
+        }
     }
 
     /**
