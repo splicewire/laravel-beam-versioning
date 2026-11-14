@@ -17,6 +17,7 @@ use Splicewire\Beam\Versioning\Data\VersionData;
 use Splicewire\Beam\Versioning\Data\VersionInputData;
 use Splicewire\Beam\Versioning\Data\VersionListResponseData;
 use Splicewire\Beam\Versioning\Data\VersionResponseData;
+use Splicewire\Beam\Versioning\VersioningError;
 
 /**
  * The one generic versions controller behind {@see Route::recordVersions()}
@@ -103,7 +104,12 @@ class VersionsController extends Controller
         $version = $this->store->version($versionable, $ref);
 
         if ($version === null) {
-            return $this->fail("No version [{$ref}] belongs to this record; cannot restore.", 404);
+            $error = VersioningError::VersionNotOwned;
+            $response = $this->fail($error->message(['ref' => $ref]), 404);
+            $body = $response->getData(true);
+            $body['code'] = $error->code();
+
+            return $response->setData($body);
         }
 
         $versionable->restoreVersionSnapshot($version->snapshot);

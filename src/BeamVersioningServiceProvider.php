@@ -18,6 +18,14 @@ class BeamVersioningServiceProvider extends ServiceProvider
 {
     public function boot(): void
     {
+        // Standalone hosts use Laravel; a composed Beam host retains sole namespace ownership.
+        $allocator = 'Splicewire\\Beam\\Localization\\TextNamespaces';
+        if ($this->app->bound($allocator) && $this->app->make($allocator)->namespaceOf('splicewire/laravel-beam-versioning') !== null) {
+            $this->app->make($allocator)->ownerOfPackage('splicewire/laravel-beam-versioning');
+        } else {
+            $this->loadTranslationsFrom(__DIR__.'/../lang', 'beam-versioning');
+        }
+
         $this->bootRecordVersionsMacro();
         $this->registerBeamManifests();
     }
@@ -41,7 +49,7 @@ class BeamVersioningServiceProvider extends ServiceProvider
         if ($this->app->bound('Splicewire\\Beam\\Doctor\\BeamDoctorManifest')) {
             $this->app->make('Splicewire\\Beam\\Doctor\\BeamDoctorManifest')->register(
                 'splicewire/laravel-beam-versioning',
-                \Splicewire\Beam\Versioning\Doctor\RecordVersionsMacroAudit::class,
+                Doctor\RecordVersionsMacroAudit::class,
             );
         }
     }
