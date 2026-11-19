@@ -65,6 +65,10 @@ class VersionResponseContractTest extends TestCase
             'multiple index' => ['index', 200, [$row, [...$row, 'id' => 'version-2', 'version' => 2]]],
             'store' => ['store', 201, $row],
             'restore' => ['restore', 201, $row],
+            // The read-one body carries the row's fields plus the frozen tree, in constructor order.
+            'show' => ['show', 200, ['id' => 'version-1', 'version' => 1, 'readable' => 'v1',
+                'snapshot' => ['title' => 'Original Title', 'body' => null], 'label' => null,
+                'createdBy' => null, 'createdAt' => null, 'isHead' => false]],
         ];
     }
 
@@ -127,7 +131,11 @@ class VersionResponseContractTest extends TestCase
             self::assertNull($meta->returns($route));
             self::assertFalse($meta->returnsMany($route));
             self::assertSame([
-                'type' => 'Splicewire.Beam.Versioning.Data.'.($operation === 'index' ? 'VersionListResponseData' : 'VersionResponseData'),
+                'type' => 'Splicewire.Beam.Versioning.Data.'.match ($operation) {
+                    'index' => 'VersionListResponseData',
+                    'show' => 'VersionSnapshotResponseData',
+                    default => 'VersionResponseData',
+                },
                 'many' => false,
                 'returnsBody' => true,
             ], $returns->for($route));
@@ -136,6 +144,6 @@ class VersionResponseContractTest extends TestCase
                 $meta->operationId($route),
             );
         }
-        self::assertCount(6, $router->getRoutes());
+        self::assertCount(8, $router->getRoutes());
     }
 }

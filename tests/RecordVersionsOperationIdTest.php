@@ -28,12 +28,13 @@ function versionsRoute(string $name): ?RouteInstance
     return null;
 }
 
-it('declares a resource-keyed operationId on each of the three routes', function () {
-    $ids = collect(['notes.versions.index', 'notes.versions.store', 'notes.versions.restore'])
+it('declares a resource-keyed operationId on each of the four routes', function () {
+    $ids = collect(['notes.versions.index', 'notes.versions.show', 'notes.versions.store', 'notes.versions.restore'])
         ->mapWithKeys(fn (string $name) => [$name => versionsRoute($name)?->getAction('beam')['operationId'] ?? null]);
 
     expect($ids->all())->toBe([
         'notes.versions.index' => 'notesVersionsIndex',
+        'notes.versions.show' => 'notesVersionsShow',
         'notes.versions.store' => 'notesVersionsStore',
         'notes.versions.restore' => 'notesVersionsRestore',
     ]);

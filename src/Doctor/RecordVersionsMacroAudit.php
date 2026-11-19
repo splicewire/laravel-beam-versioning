@@ -19,7 +19,7 @@ class RecordVersionsMacroAudit implements DoctorAudit
     public function run(): array
     {
         return Route::hasMacro('recordVersions')
-            ? [Finding::pass('recordVersions macro', 'registered — the versions REST triplet is mountable.')]
+            ? [Finding::pass('recordVersions macro', 'registered — the versions REST routes are mountable.')]
             : [Finding::fail('recordVersions macro', 'missing: BeamVersioningServiceProvider did not boot, so every Route::recordVersions() call site mounts NOTHING.')];
     }
 }

@@ -1,6 +1,6 @@
 {
     "name": "splicewire/laravel-beam-versioning",
-    "description": "The HTTP + DTO seam over rushing/laravel-versioning: a single generic versions controller (list / save / restore, roll-forward), a Route::recordVersions() macro that registers the REST triplet for any Versionable model, and the record-agnostic VersionData / VersionInputData projections. Authorization delegates to the host model's existing policy via the macro's ability map. A capability peer of the beam family (ADR-0116 mirrored pair with @splicewire/beam-versioning); the raw VersionStore mechanism stays pure in rushing/laravel-versioning.",
+    "description": "The HTTP + DTO seam over rushing/laravel-versioning: a single generic versions controller (list / show one / save / restore, roll-forward), a Route::recordVersions() macro that registers the versions REST routes for any Versionable model, and the record-agnostic VersionData / VersionInputData projections. Authorization delegates to the host model's existing policy via the macro's ability map. A capability peer of the beam family (ADR-0116 mirrored pair with @splicewire/beam-versioning); the raw VersionStore mechanism stays pure in rushing/laravel-versioning.",
     "keywords": [
         "laravel",
         "versioning",
@@ -36,7 +36,7 @@
     },
     "suggest": {
         "schemastud/laravel-data-schemas": "The VersionData / VersionInputData projections carry #[Description]/#[Example] annotations for schema + API-doc generation. Only reflected by a schema/Scribe host (never at request time \u2014 spatie/laravel-data never instantiates foreign attributes), so the package runs without it; an engine-tier host (which has it) documents the endpoints with field descriptions.",
-        "rushing/laravel-data-schemas-scribe": "The VersionsController methods carry #[RequestFromData]/#[ResponseFromData] so the versions triplet self-documents under Scribe. Only reflected by `scribe:generate` (never at request time), so the package runs without it; a Scribe host generates the endpoint docs."
+        "rushing/laravel-data-schemas-scribe": "The VersionsController methods carry #[RequestFromData]/#[ResponseFromData] so the versions routes self-document under Scribe. Only reflected by `scribe:generate` (never at request time), so the package runs without it; a Scribe host generates the endpoint docs."
     },
     "autoload": {
         "psr-4": {

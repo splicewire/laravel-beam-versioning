@@ -17,6 +17,7 @@ use App\Models\Composition;
 
 Route::recordVersions('compositions', Composition::class);
 // → GET  compositions/{id}/versions               list, newest-first, HEAD flagged
+//   GET  compositions/{id}/versions/{ref}         one version WITH its frozen snapshot (view)
 //   POST compositions/{id}/versions               mint a labelled snapshot (advances HEAD)
 //   POST compositions/{id}/versions/{ref}/restore roll forward to {ref}
 ```
@@ -35,8 +36,12 @@ Route::recordVersions('embeds', Embed::class, abilities: [
 ]);
 ```
 
-`index` authorizes `view`; `store` and `restore` authorize `mutate`. There is no version policy —
+`index` and `show` authorize `view`; `store` and `restore` authorize `mutate`. There is no version policy —
 version access follows the same rules as the record.
+
+`show` returns the version's raw frozen `snapshot` (whatever the record's `toVersionSnapshot()` froze) to anyone
+holding `view`. If a record freezes fields its normal read hides, those fields are readable through `show`: freeze
+only what a viewer may see, or map `view` to a stricter ability for that resource.
 
 ### Morph-aliased records (`via`)
 

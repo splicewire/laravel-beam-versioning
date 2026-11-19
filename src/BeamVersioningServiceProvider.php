@@ -56,9 +56,10 @@ class BeamVersioningServiceProvider extends ServiceProvider
 
     /**
      * Register `Route::recordVersions($resource, $modelClass, abilities: [...], via: ...)`, which
-     * registers the versions REST triplet for any Versionable model:
+     * registers the versions REST routes for any Versionable model:
      *
      *   GET  {resource}/{id}/versions               → index   (list, newest-first, HEAD flagged)
+     *   GET  {resource}/{id}/versions/{ref}         → show    (one version WITH its frozen snapshot)
      *   POST {resource}/{id}/versions               → store   (mint a labelled snapshot)
      *   POST {resource}/{id}/versions/{ref}/restore → restore (roll forward)
      *
@@ -97,13 +98,13 @@ class BeamVersioningServiceProvider extends ServiceProvider
                 'via' => $via,
             ];
 
-            // The OpenAPI `operationId` each of the three routes declares (api-surface-coherence 36/78).
+            // The OpenAPI `operationId` each of the four routes declares (api-surface-coherence 36/78).
             // A macro puts ONE controller method on N routes, so a title-derived id collides across every
             // resource that records versions; the mount is the only party that knows the resource, so it
             // declares. Written straight into `action['beam']['operationId']` — the one key beam's
             // `RouteMetadataReader::operationId()` reads and `->beam()->operationId()` writes — rather than
             // through the proxy, because this package does not depend on beam and must stay mountable
-            // without it. `embeds` → `embedsVersionsIndex` / `embedsVersionsStore` / `embedsVersionsRestore`.
+            // without it. `embeds` → `embedsVersionsIndex` / `embedsVersionsShow` / `embedsVersionsStore` / `embedsVersionsRestore`.
             $declared = function (RouteInstance $route, string $operation) use ($resource): RouteInstance {
                 $route->action['beam']['operationId'] = Str::camel(str_replace('/', ' ', $resource)).'Versions'.ucfirst($operation);
 
@@ -129,6 +130,12 @@ class BeamVersioningServiceProvider extends ServiceProvider
             $declared($typed($withId($this->get("{$resource}/{id}/versions", [VersionsController::class, 'index'])), many: true), 'index')
                 ->defaults('_versions', $config)
                 ->name("{$resource}.versions.index");
+
+            // Not through `$typed`: `$data` is a host's legacy bare `returns` for a version ROW, and this route
+            // returns a row WITH its snapshot. The controller's `#[ResponseFromData]` declares the whole body.
+            $declared($withId($this->get("{$resource}/{id}/versions/{ref}", [VersionsController::class, 'show'])), 'show')
+                ->defaults('_versions', $config)
+                ->name("{$resource}.versions.show");
 
             $declared($typed($withId($this->post("{$resource}/{id}/versions", [VersionsController::class, 'store']))), 'store')
                 ->defaults('_versions', $config)
