@@ -16,6 +16,11 @@ use Splicewire\Beam\Versioning\Http\VersionsController;
  */
 class BeamVersioningServiceProvider extends ServiceProvider
 {
+    public function register(): void
+    {
+        $this->mergeConfigFrom(__DIR__.'/../config/beam/versioning.php', 'beam.versioning');
+    }
+
     public function boot(): void
     {
         // Standalone hosts use Laravel; a composed Beam host retains sole namespace ownership.
